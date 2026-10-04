@@ -8,6 +8,9 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry;
 import net.minecraft.core.Registry;
@@ -69,31 +72,78 @@ public final class SkyCombat {
 	public static @Nullable SkyrimActorEntity proxy(int formId) {
 		return PROXIES.get(formId);
 	}
+	public static void handleActorDeath(ServerLevel level, int formId) {
+    SkyrimActorEntity proxy = PROXIES.get(formId);
+    if (proxy == null) {
+        SkyCraft.LOG.warn(
+            "SkyCraft: cow death for {:08X}, but no proxy exists",
+            formId
+        );
+        return;
+    }
 
+    double x = proxy.getX();
+    double y = proxy.getY();
+    double z = proxy.getZ();
+
+    ItemEntity beef = new ItemEntity(
+        level,
+        x,
+        y + 0.25D,
+        z,
+        new ItemStack(Items.BEEF, 1)
+    );
+
+    level.addFreshEntity(beef);
+
+    SkyCraft.LOG.info(
+        "SkyCraft: cow {:08X} dropped Minecraft beef at {}, {}, {}",
+        formId, x, y, z
+    );
+}
+	
 	private static void serverTick(MinecraftServer server) {
-		List<ServerPlayer> players = server.getPlayerList().getPlayers();
-		if (!SkyLink.active() || players.isEmpty()) {
-			removeAll();
-			return;
-		}
-		ServerLevel level = players.getFirst().level();
-		for (ServerPlayer player : players) {
-			pickUpNearby(player);
-		}
-		if (SkyLink.readActors(ACTORS)) {
-			sync(level);
-		}
-		// Hits land during the tick (melee, sweeps, arrows, fire); send one combined hit per actor.
-		for (SkyrimActorEntity proxy : PROXIES.values()) {
-			float[] hit = proxy.takeHit();
-			if (hit != null && (hit[0] > 0.0F || hit[3] > 0.0F)) {
-				SkyLink.pushEvent(
-					Proto.EV_HIT_ACTOR, proxy.formId(), hit[0], hit[1], hit[2], hit[3], Float.floatToRawIntBits(hit[4]), Float.floatToRawIntBits(hit[5])
-				);
-				SkyCraft.LOG.info("SkyCraft: hit {} for {} (knockback {})", proxy.getName().getString(), hit[0], hit[3]);
-			}
+	List<ServerPlayer> players = server.getPlayerList().getPlayers();
+	if (!SkyLink.active() || players.isEmpty()) {
+		removeAll();
+		return;
+	}
+
+	ServerLevel level = players.getFirst().level();
+
+
+	for (ServerPlayer player : players) {
+		pickUpNearby(player);
+	}
+
+	if (SkyLink.readActors(ACTORS)) {
+		sync(level);
+	}
+
+	// Hits land during the tick (melee, sweeps, arrows, fire); send one combined hit per actor.
+	for (SkyrimActorEntity proxy : PROXIES.values()) {
+		float[] hit = proxy.takeHit();
+		if (hit != null && (hit[0] > 0.0F || hit[3] > 0.0F)) {
+			SkyLink.pushEvent(
+				Proto.EV_HIT_ACTOR,
+				proxy.formId(),
+				hit[0],
+				hit[1],
+				hit[2],
+				hit[3],
+				Float.floatToRawIntBits(hit[4]),
+				Float.floatToRawIntBits(hit[5])
+			);
+
+			SkyCraft.LOG.info(
+				"SkyCraft: hit {} for {} (knockback {})",
+				proxy.getName().getString(),
+				hit[0],
+				hit[3]
+			);
 		}
 	}
+}
 
 	private static void sync(ServerLevel level) {
 		Map<Integer, SkyLink.Actor> live = new HashMap<>();

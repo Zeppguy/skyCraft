@@ -69,6 +69,20 @@ public final class InputBridge {
 					minecraft.gui.setScreen(new PauseScreen(true));
 				}
 			}
+			case Proto.IN_ACTOR_DEATH -> {
+    if (code == 1) {
+        var server = minecraft.getSingleplayerServer();
+        if (server != null) {
+            int formId = a;
+            server.execute(() -> {
+                if (!server.getPlayerList().getPlayers().isEmpty()) {
+                    ServerPlayer player = server.getPlayerList().getPlayers().getFirst();
+                    SkyCombat.handleActorDeath(player.level(), formId);
+                }
+            });
+        }
+    }
+}
 			default -> {
 			}
 		}

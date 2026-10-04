@@ -87,6 +87,11 @@ namespace skycraft::Dig
 		}
 	}
 
+	bool IsBasalt(RE::TESObjectREFR* a_ref)
+	{
+		return a_ref && Contains(ModelPath(a_ref->GetBaseObject()), "Basalt");
+	}
+
 	void OnDug(const std::uint8_t* a_data, std::uint32_t a_bytes)
 	{
 		if (a_bytes < sizeof(proto::RenDug)) {
@@ -351,6 +356,9 @@ namespace skycraft::Dig
 		using M = RE::MATERIAL_ID;
 		const char* path = a_ref ? ModelPath(a_ref->GetBaseObject()) : "";
 		const bool  treeish = a_tree || Contains(path, "trees\\") || Contains(path, "trees/");
+		if (Contains(path, "OreIron")) {
+			return proto::kDigIronOre;
+		}
 		auto        log = [&] {
 			if (Contains(path, "aspen") || Contains(path, "birch")) {
 				return proto::kDigBirchLog;

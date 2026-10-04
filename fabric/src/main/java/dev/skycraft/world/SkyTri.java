@@ -25,7 +25,10 @@ public final class SkyTri {
 	public SkyTri(float[] v, int o, int flags) {
 		boolean stairHelper = (flags & dev.skycraft.link.Proto.TRI_STAIR_HELPER) != 0;
 		this.diggable = (flags & dev.skycraft.link.Proto.TRI_DIGGABLE) != 0;
-		this.material = (flags >>> dev.skycraft.link.Proto.TRI_MATERIAL_SHIFT) & 0xFF;
+		// Skyrim's basalt digs into obsidian, whatever Havok calls its material.
+		this.material = (flags & dev.skycraft.link.Proto.TRI_BASALT) != 0
+			? dev.skycraft.link.Proto.DIG_OBSIDIAN
+			: (flags >>> dev.skycraft.link.Proto.TRI_MATERIAL_SHIFT) & 0xFF;
 		this.terrain = (flags & dev.skycraft.link.Proto.TRI_TERRAIN) != 0;
 		this.ax = v[o];
 		this.ay = v[o + 1];

@@ -104,6 +104,7 @@ namespace skycraft
 		// Skyrim's animated first-person camera bone (which sways with run/jump/land animations).
 		RE::NiMatrix3 idealRot;         // what we render with
 		RE::NiMatrix3 idealRotNoRoll;   // what Skyrim should produce from the angles we give it
+		float         idealHeading = 0.0f;  // the heading both were built from (radians, clockwise from north)
 		bool          idealValid = false;
 		// Runtime discovery of Skyrim's camera-root axis convention before we take over:
 		// for each column of Skyrim's matrix, which of (+/-) forward/up/right it is.
@@ -214,6 +215,23 @@ namespace skycraft
 			}
 			root->world.translate = eyePos;
 			camera->GetRuntimeData2().pos = eyePos;
+			// The compass and its markers, like the rest of the HUD that points somewhere, are drawn
+			// from the camera's *published* heading: PlayerCamera::yaw, which the game's camera update
+			// recomputes as the camera target's heading plus the current camera state's own offset, and
+			// which is never taken from the camera node it renders with. SkyCraft turns that node
+			// itself and leaves the camera states to Skyrim, so publish the heading of the turn we made
+			// too: a state Skyrim entered on its own (a bed, a chair, a kill cam, a POV switch) takes
+			// its heading from Skyrim's own look input, which Minecraft owns while it drives, so the
+			// game keeps re-publishing that state's stale offset and the compass sticks on the
+			// direction it had until a save is reloaded. With Skyrim's own camera rotation left in
+			// place (the axis check rejected), its heading is the right one and stays untouched.
+			if (idealValid && rotValidated) {
+				float heading = idealHeading;
+				if (heading < 0.0f) {
+					heading += 6.2831853f;  // the game keeps it in [0, 2pi), radians
+				}
+				camera->GetRuntimeData2().yaw = heading;
+			}
 			if (auto* sky = RE::Sky::GetSingleton(); sky && sky->root) {
 				sky->root->local.translate = eyePos;
 				sky->root->world.translate = eyePos;
@@ -881,6 +899,7 @@ namespace skycraft
 				const float bobRollDeg = std::sin(phase) * bob * 3.0f;
 				idealRotNoRoll = BuildCameraRotation(camHeading, camPitchDeg * kDegToRad, 0.0f);
 				idealRot = BuildCameraRotation(camHeading, camPitchDeg * kDegToRad, bobRollDeg * kDegToRad);
+				idealHeading = camHeading;
 				idealValid = !st.skyrimMenuOpen;
 
 				// Place and turn the camera together, here. Skyrim's camera update (where it's also
@@ -936,7 +955,17 @@ namespace skycraft
 					a_player->data.angle.x = (st.pitch + bobPitchDeg) * kDegToRad;
 					if (auto* camera = RE::PlayerCamera::GetSingleton()) {
 						if (!camera->IsInFirstPerson()) {
-							camera->ForceFirstPerson();
+							// Skyrim's own camera states never hand the compass back by themselves: they
+							// take their heading from Skyrim's look input, which Minecraft owns, so their
+							// last heading would stick (see PinCameraAndSky). Report a state that won't
+							// give way, once per state, instead of failing silently.
+							const bool forced = camera->ForceFirstPerson();
+							const auto state = camera->currentState ? camera->currentState->id : RE::CameraState::kTotal;
+							static std::uint32_t reported = 0xFFFFFFFF;
+							if ((!forced || state != RE::CameraState::kFirstPerson) && reported != static_cast<std::uint32_t>(state)) {
+								reported = static_cast<std::uint32_t>(state);
+								logger::warn("camera state {} won't give way to first person (ForceFirstPerson {})", static_cast<std::uint32_t>(state), forced);
+							}
 						}
 						if (mc.fovDeg > 1.0f) {
 							ApplyMcFov(camera, mc.fovDeg);
@@ -1241,6 +1270,20 @@ namespace skycraft
 			const auto& cam = camera->cameraRoot->world.translate;
 			logger::info("camera check (same frame): rendered ({:.1f} {:.1f} {:.1f}) vs Minecraft eye ({:.1f} {:.1f} {:.1f}), off by {:.1f} units",
 				cam.x, cam.y, cam.z, eyePos.x, eyePos.y, eyePos.z, cam.GetDistance(eyePos));
+			// The compass and its markers are drawn from the camera's published heading (see
+			// PinCameraAndSky), not from the node SkyCraft turns: when these disagree, the HUD is
+			// pointing somewhere nobody is looking, which is what a left-behind camera state (and
+			// so the compass going dead) looks like in the log.
+			{
+				auto* player = RE::PlayerCharacter::GetSingleton();
+				float ours = idealHeading * kRadToDeg;
+				if (ours < 0.0f) {
+					ours += 360.0f;
+				}
+				logger::info("  compass: camera state {}, heading published {:.1f} deg, ours {:.1f} deg, Skyrim's own look {:.1f} deg",
+					static_cast<std::uint32_t>(camera->currentState ? camera->currentState->id : RE::CameraState::kTotal),
+					camera->GetRuntimeData2().yaw * kRadToDeg, ours, player ? player->data.angle.z * kRadToDeg : 0.0f);
+			}
 			if (auto* sky = RE::Sky::GetSingleton(); sky && sky->root) {
 				const auto& s = sky->root->world.translate;
 				logger::info("  sky root ({:.1f} {:.1f} {:.1f}), {:.1f} units from the camera", s.x, s.y, s.z, s.GetDistance(cam));

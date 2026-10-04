@@ -370,9 +370,48 @@ namespace skycraft
 				if (push > 0.45f) {
 					hit->flags.set(RE::HitData::Flag::kPowerAttack);
 				}
+				const float healthBefore =
+    			actor->AsActorValueOwner()->GetActorValue(RE::ActorValue::kHealth);
 				processHit(actor, *hit);
+
+				const float healthAfter =
+    			actor->AsActorValueOwner()->GetActorValue(RE::ActorValue::kHealth);
+
+				if (healthAfter <= 0.0f || healthAfter < healthBefore) {
+					const char* actorName = actor->GetDisplayFullName();
+
+					if (actorName && std::strcmp(actorName, "Cow") == 0) {
+						logger::info(
+							"cow health changed: {:08X}, {:.1f} -> {:.1f}",
+							a_ev.formId,
+							healthBefore,
+							healthAfter);
+
+						if (healthAfter <= 0.0f) {
+							logger::info("cow death detected: {:08X}", a_ev.formId);
+
+							Link::Get().PushInput(
+								proto::kInActorDeath,
+								1,
+								static_cast<std::int32_t>(a_ev.formId));
+						}
+					}
+				}
 			} else if (damage > 0.0f) {
 				actor->DoDamage(damage, a_player, true);
+
+				if (actor->IsDead()) {
+					const char* actorName = actor->GetDisplayFullName();
+
+					if (actorName && std::strcmp(actorName, "Cow") == 0) {
+						logger::info("cow death detected: {:08X}", a_ev.formId);
+						Link::Get().PushInput(
+							proto::kInActorDeath,
+							1,
+							static_cast<std::int32_t>(a_ev.formId)
+						);
+					}
+				}
 				if (stagger > 0.0f && !actor->IsDead()) {
 					const float pushHeading = std::atan2(a_ev.b, -a_ev.c);  // MC (x, z) -> Skyrim heading
 					float       sdir = (pushHeading - actor->GetAngleZ()) / (2.0f * kPi) + 0.5f;

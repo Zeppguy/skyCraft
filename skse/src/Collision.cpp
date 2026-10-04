@@ -418,8 +418,13 @@ namespace skycraft
 		}
 		const auto havok = Dig::ShapeMaterial(a_job.top, a_key);
 		const auto material = Dig::MaterialFor(havok, a_job.ref, a_job.tree);
+		// Skyrim's basalt digs into obsidian, whatever Havok calls its material.
+		std::uint32_t flags = proto::kTriDiggable | (a_job.terrain ? proto::kTriTerrain : 0);
+		if (Dig::IsBasalt(a_job.ref)) {
+			flags |= proto::kTriBasalt;
+		}
 
-		return proto::kTriDiggable | (a_job.terrain ? proto::kTriTerrain : 0) | (std::uint32_t(material) << proto::kTriMaterialShift);
+		return flags | (std::uint32_t(material) << proto::kTriMaterialShift);
 	}
 
 	void Collision::Collect(const RE::hkpShape* a_shape, const float* a_xf, const float a_lo[3], const float a_hi[3], Job& a_job, int a_depth, RE::hkpShapeKey a_key)

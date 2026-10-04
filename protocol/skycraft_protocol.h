@@ -180,6 +180,7 @@ namespace skycraft::proto
 		kInReleaseAll = 6,   // release every held key/button (input focus left MC)
 		kInHurt = 7,         // Skyrim hit the player: code = HurtKind, a = Skyrim damage * 100, b = attacker FormID, c = HurtFlags
 		kInOpenMenu = 8,     // open Minecraft's pause/options menu
+		kInActorDeath = 9,   // Skyrim actor died: code = death kind, a = actor FormID
 	};
 
 	enum HurtKind : std::uint16_t
@@ -392,6 +393,8 @@ namespace skycraft::proto
 		kDigWeb = 19,
 		kDigAsh = 20,
 		kDigBedrock = 21,  // Minecraft only: a few blocks under the land
+		kDigObsidian = 22,
+		kDigIronOre = 23,
 		kDigMaterialCount
 	};
 
@@ -529,6 +532,7 @@ namespace skycraft::proto
 		kTriGhost = 1u << 2,        // a diggable triangle as it was before blocks were dug out of it:
 		                            // not collision, only for telling what's inside Skyrim's geometry
 		kTriTerrain = 1u << 3,      // the land (a height field)
+		kTriBasalt = 1u << 4,       // Skyrim's basalt: Minecraft digs it out as obsidian
 	};
 
 	inline constexpr std::uint32_t kTriMaterialShift = 8;

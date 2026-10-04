@@ -40,6 +40,7 @@ public final class Proto {
 	// Input types added in v5
 	public static final int IN_HURT = 7;
 	public static final int IN_OPEN_MENU = 8;
+	public static final int IN_ACTOR_DEATH = 9;
 	public static final int HURT_MELEE = 0;
 	public static final int HURT_PROJECTILE = 1;
 	public static final int HURT_MAGIC = 2;
@@ -226,11 +227,16 @@ public final class Proto {
 	public static final int TRI_DIGGABLE = 2;
 	public static final int TRI_GHOST = 4;
 	public static final int TRI_TERRAIN = 8;
+	/** Skyrim's basalt: the tri digs into obsidian (see DIG_OBSIDIAN). */
+	public static final int TRI_BASALT = 16;
 	public static final int TRI_MATERIAL_SHIFT = 8;
 	// DigMaterial (skycraft_protocol.h)
 	public static final int DIG_NONE = 0, DIG_GRASS = 1, DIG_DIRT = 2, DIG_STONE = 3, DIG_COBBLE = 4, DIG_SNOW = 5, DIG_ICE = 6, DIG_SAND = 7,
 		DIG_GRAVEL = 8, DIG_MUD = 9, DIG_OAK_LOG = 10, DIG_SPRUCE_LOG = 11, DIG_BIRCH_LOG = 12, DIG_PLANKS = 13, DIG_METAL = 14, DIG_GLASS = 15,
-		DIG_ORGANIC = 16, DIG_CLOTH = 17, DIG_BONE = 18, DIG_WEB = 19, DIG_ASH = 20, DIG_BEDROCK = 21, DIG_MATERIAL_COUNT = 22;
+		DIG_ORGANIC = 16, DIG_CLOTH = 17, DIG_BONE = 18, DIG_WEB = 19, DIG_ASH = 20, DIG_BEDROCK = 21,
+		/** Not sent by Skyrim itself: what basalt (TRI_BASALT) digs into. */
+		DIG_OBSIDIAN = 22,
+		DIG_IRON_ORE = 23, DIG_MATERIAL_COUNT = 24;
 	public static final int COL_REGION_HEADER_BYTES = 32;
 	public static final int COL_BLOCK_BYTES = 80;
 }

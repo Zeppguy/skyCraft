@@ -261,6 +261,8 @@ public final class SkyDig {
 			case DIG_WEB -> Blocks.COBWEB.defaultBlockState();
 			case DIG_ASH -> Blocks.CONCRETE_POWDER.pick(DyeColor.LIGHT_GRAY).defaultBlockState();
 			case DIG_BEDROCK -> Blocks.BEDROCK.defaultBlockState();
+			case DIG_OBSIDIAN -> Blocks.OBSIDIAN.defaultBlockState();
+			case DIG_IRON_ORE -> Blocks.IRON_ORE.defaultBlockState();
 			default -> Blocks.STONE.defaultBlockState();
 		};
 	}
